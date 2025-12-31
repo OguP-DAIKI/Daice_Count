@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>フブさんとのサイコロゾロ目耐久</title>
+    <style>
+        body { 
+            font-family: 'Helvetica Neue', Arial, sans-serif; 
+            text-align: center; 
+            background-color: #e3f2fd; 
+            color: #333; 
+            margin: 0; 
+            padding: 10px;
+            transition: background-color 0.8s ease;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* ゾロ目連数ごとの背景色 */
+        body.bg-5 { background-color: #b2ebf2 !important; }
+        body.bg-6 { background-color: #c8e6c9 !important; }
+        body.bg-7 { background-color: #fff9c4 !important; }
+        body.bg-8 { background-color: #ffccbc !important; }
+        body.bg-9 { background-color: #f8bbd0 !important; }
+
+        h1 { color: #0277bd; font-size: 1.5rem; border-bottom: 3px solid #0277bd; display: inline-block; padding-bottom: 10px; margin-top: 10px; }
+        
+        .dice-container { 
+            display: grid; 
+            grid-template-columns: repeat(3, minmax(75px, 90px)); 
+            grid-template-rows: repeat(3, minmax(75px, 90px));
+            gap: 12px; 
+            justify-content: center; 
+            margin: 20px auto; 
+        }
+        
+        .die { 
+            aspect-ratio: 1 / 1;
+            background: white; 
+            border: 3px solid #b3e5fc; 
+            border-radius: 14px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
+            display: grid;
+            grid-template-areas: "a b c" "d e f" "g h i";
+            padding: 8px;
+            box-sizing: border-box;
+            transition: all 0.2s ease;
+        }
+
+        /* ドットの基本 */
+        .dot { border-radius: 50%; width: 80%; height: 80%; margin: auto; }
+
+        /* --- 指定された目の色設定 --- */
+        .die[data-value="1"] .dot { background-color: #e53935; width: 95%; height: 95%; } /* 1: 赤 */
+        .die[data-value="2"] .dot { background-color: #4fc3f7; } /* 2: 水色 */
+        .die[data-value="3"] .dot { background-color: #66bb6a; } /* 3: 緑 */
+        .die[data-value="4"] .dot { background-color: #9575cd; } /* 4: 紫 */
+        .die[data-value="5"] .dot { background-color: #fbc02d; } /* 5: 黄色 */
+        .die[data-value="6"] .dot { background-color: #212121; } /* 6: 黒 */
+
+        .die.highlight {
+            background: #fff;
+            border-color: #fbc02d;
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(251, 192, 45, 0.8);
+        }
+
+        .rolling { animation: rotate-dice 0.3s linear infinite; }
+        @keyframes rotate-dice {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* ポップアップ関連 */
+        #popup-mask { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; z-index: 1500; opacity: 0; transition: opacity 0.3s; }
+        #custom-popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.8); background: white; padding: 30px; border-radius: 24px; box-shadow: 0 15px 40px rgba(0,0,0,0.3); z-index: 2000; display: none; opacity: 0; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); min-width: 260px; }
+        #custom-popup.show { display: block; opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        .popup-close-btn { background: #0288d1; color: white; border: none; padding: 12px 40px; border-radius: 50px; font-weight: bold; cursor: pointer; margin-top: 10px; box-shadow: 0 4px #01579b; }
+
+        #roll-btn { width: 80%; max-width: 300px; padding: 18px; font-size: 1.2rem; cursor: pointer; border: none; border-radius: 50px; background: #0288d1; color: white; box-shadow: 0 5px #01579b; font-weight: bold; touch-action: manipulation; }
+        #roll-btn:active { transform: translateY(2px); box-shadow: 0 2px #01579b; }
+        #roll-btn:disabled { background: #b0bec5; box-shadow: none; }
+
+        .record-board { margin: 20px auto; width: 90%; max-width: 400px; background: white; padding: 15px; border-radius: 20px; border: 2px solid #b3e5fc; box-sizing: border-box; }
+        .record-item { display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px dashed #e1f5fe; }
+        .count-badge { background: #4fc3f7; color: white; padding: 2px 12px; border-radius: 20px; }
+
+        #overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(212, 175, 55, 0.98); color: white; flex-direction: column; align-items: center; justify-content: center; z-index: 3000; padding: 20px; box-sizing: border-box; }
+        .close-btn { padding: 12px 45px; background: white; color: #b8860b; border: none; border-radius: 50px; cursor: pointer; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div id="popup-mask"></div>
+    <div id="custom-popup">
+        <div id="popup-title" style="font-weight: bold; font-size: 1.5rem; margin-bottom: 8px;"></div>
+        <div id="popup-msg" style="font-size: 1.1rem; color: #555; margin-bottom: 25px;"></div>
+        <button class="popup-close-btn" onclick="hidePopup()">閉じる</button>
+    </div>
+
+    <div id="overlay">
+        <h1 style="color: white; border: none; font-size: 2.5rem;">✨ 伝説達成！ ✨</h1>
+        <p style="font-size: 1.2rem; margin-bottom: 30px;">ついに9連ゾロ目を達成！</p>
+        <button class="close-btn" onclick="closeOverlay()">閉じる</button>
+    </div>
+
+    <h1>フブさんとのサイコロゾロ目耐久</h1>
+    <div style="font-size: 1.2rem; font-weight: bold; color: #01579b; margin-bottom: 10px;">合計: <span id="total-count">0</span>回</div>
+
+    <div class="dice-container" id="dice-display"></div>
+
+    <button id="roll-btn" onclick="startRoll()">サイコロを振る！</button>
+
+    <div class="record-board">
+        <h3 style="margin: 0 0 10px 0; color: #0277bd;">🏆 記録</h3>
+        <div class="record-item"><span>5連</span><span class="count-badge"><span id="count-5">0</span>回</span></div>
+        <div class="record-item"><span>6連</span><span class="count-badge"><span id="count-6">0</span>回</span></div>
+        <div class="record-item"><span>7連</span><span class="count-badge"><span id="count-7">0</span>回</span></div>
+        <div class="record-item"><span>8連</span><span class="count-badge"><span id="count-8">0</span>回</span></div>
+        <div class="record-item"><span>9連</span><span class="count-badge"><span id="count-9">0</span>回</span></div>
+    </div>
+
+    <button id="reset-btn" style="background: transparent; color: #90a4ae; border: none; margin: 20px 0; cursor: pointer; text-decoration: underline;" onclick="confirmReset()">データをリセット</button>
+
+    <script>
+        const STORAGE_PREFIX = 'fubu_dice_color_v1_';
+        let totalRolls = parseInt(localStorage.getItem(STORAGE_PREFIX + 'rolls')) || 0;
+        let zoromeCounts = JSON.parse(localStorage.getItem(STORAGE_PREFIX + 'counts')) || {5:0, 6:0, 7:0, 8:0, 9:0};
+
+        initDice();
+        updateDisplay();
+
+        function initDice() {
+            const container = document.getElementById('dice-display');
+            container.innerHTML = '';
+            for(let i=0; i<9; i++) container.appendChild(createDieElement(0));
+        }
+
+        function createDieElement(value, highlight = false) {
+            const die = document.createElement('div');
+            die.className = 'die' + (highlight ? ' highlight' : '');
+            die.setAttribute('data-value', value);
+
+            const dotPositions = {
+                1: ['e'], 2: ['c', 'g'], 3: ['c', 'e', 'g'],
+                4: ['a', 'c', 'g', 'i'], 5: ['a', 'c', 'e', 'g', 'i'],
+                6: ['a', 'c', 'd', 'f', 'g', 'i'], 0: []
+            };
+
+            if (value > 0) {
+                dotPositions[value].forEach(pos => {
+                    const dot = document.createElement('div');
+                    dot.className = 'dot';
+                    dot.style.gridArea = pos;
+                    die.appendChild(dot);
+                });
+            } else {
+                die.style.display = 'flex'; die.style.justifyContent = 'center';
+                die.style.alignItems = 'center'; die.style.fontSize = '2rem';
+                die.style.color = '#b3e5fc'; die.textContent = '?';
+            }
+            return die;
+        }
+
+        function startRoll() {
+            const btn = document.getElementById('roll-btn');
+            const diceElements = document.querySelectorAll('.die');
+            document.body.className = '';
+            btn.disabled = true;
+            diceElements.forEach(die => { die.classList.remove('highlight'); die.classList.add('rolling'); });
+            setTimeout(() => {
+                diceElements.forEach(die => die.classList.remove('rolling'));
+                executeRoll();
+                btn.disabled = false;
+            }, 350);
+        }
+
+        function executeRoll() {
+            totalRolls++;
+            const results = [];
+            for (let i = 0; i < 9; i++) results.push(Math.floor(Math.random() * 6) + 1);
+            const counts = {};
+            results.forEach(num => counts[num] = (counts[num] || 0) + 1);
+            let maxCombo = 0, targetNum = 0;
+            for (let num in counts) { if (counts[num] >= 5 && counts[num] > maxCombo) { maxCombo = counts[num]; targetNum = Number(num); } }
+
+            const container = document.getElementById('dice-display');
+            container.innerHTML = '';
+            results.forEach(num => container.appendChild(createDieElement(num, num === targetNum)));
+            
+            if (maxCombo >= 5) {
+                zoromeCounts[maxCombo]++;
+                document.body.classList.add('bg-' + maxCombo);
+                if (maxCombo === 9) document.getElementById('overlay').style.display = 'flex';
+                else showPopup(maxCombo, targetNum);
+            }
+            localStorage.setItem(STORAGE_PREFIX + 'rolls', totalRolls);
+            localStorage.setItem(STORAGE_PREFIX + 'counts', JSON.stringify(zoromeCounts));
+            updateDisplay();
+        }
+
+        function showPopup(combo, num) {
+            const mask = document.getElementById('popup-mask'), popup = document.getElementById('custom-popup');
+            const title = document.getElementById('popup-title'), msg = document.getElementById('popup-msg');
+            title.textContent = `✨ ${combo}連ゾロ目！`;
+            title.style.color = (combo === 5) ? '#00acc1' : (combo === 6) ? '#43a047' : (combo === 7) ? '#fbc02d' : '#f4511e';
+            msg.textContent = `「${num}」が揃いました！`;
+            mask.style.display = 'block'; popup.style.display = 'block';
+            setTimeout(() => { mask.style.opacity = '1'; popup.classList.add('show'); }, 10);
+        }
+
+        function hidePopup() {
+            const mask = document.getElementById('popup-mask'), popup = document.getElementById('custom-popup');
+            mask.style.opacity = '0'; popup.classList.remove('show');
+            setTimeout(() => { mask.style.display = 'none'; popup.style.display = 'none'; }, 300);
+        }
+
+        function updateDisplay() {
+            document.getElementById('total-count').textContent = totalRolls;
+            for (let i = 5; i <= 9; i++) document.getElementById('count-' + i).textContent = zoromeCounts[i];
+        }
+
+        function closeOverlay() { document.getElementById('overlay').style.display = 'none'; document.body.className = ''; }
+
+        function confirmReset() { if (confirm("全ての記録をリセットしますか？")) { localStorage.clear(); location.reload(); } }
+    </script>
+</body>
+</html>
