@@ -17,7 +17,7 @@
             -webkit-user-select: none;
         }
 
-        /* ゾロ目連数ごとの背景色 */
+        /* ゾロ目連数背景 */
         body.bg-5 { background-color: #b2ebf2 !important; }
         body.bg-6 { background-color: #c8e6c9 !important; }
         body.bg-7 { background-color: #fff9c4 !important; }
@@ -37,10 +37,10 @@
         
         .die { 
             aspect-ratio: 1 / 1;
-            background: white; 
+            background: #ffffff; 
             border: 3px solid #b3e5fc; 
             border-radius: 14px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1); 
             display: grid;
             grid-template-areas: "a b c" "d e f" "g h i";
             padding: 8px;
@@ -48,22 +48,51 @@
             transition: all 0.2s ease;
         }
 
-        /* ドットの基本 */
-        .dot { border-radius: 50%; width: 80%; height: 80%; margin: auto; }
+        /* メタリックドットの共通設定 */
+        .dot { 
+            border-radius: 50%; 
+            width: 80%; height: 80%; 
+            margin: auto;
+            position: relative;
+            /* 彫り込み感のある影 */
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3), 0 1px 1px rgba(255,255,255,0.5);
+        }
 
-        /* --- 指定された目の色設定 --- */
-        .die[data-value="1"] .dot { background-color: #e53935; width: 95%; height: 95%; } /* 1: 赤 */
-        .die[data-value="2"] .dot { background-color: #4fc3f7; } /* 2: 水色 */
-        .die[data-value="3"] .dot { background-color: #66bb6a; } /* 3: 緑 */
-        .die[data-value="4"] .dot { background-color: #9575cd; } /* 4: 紫 */
-        .die[data-value="5"] .dot { background-color: #fbc02d; } /* 5: 黄色 */
-        .die[data-value="6"] .dot { background-color: #212121; } /* 6: 黒 */
+        /* ハイライト（反射光）を疑似要素で作る */
+        .dot::after {
+            content: '';
+            position: absolute;
+            top: 15%; left: 15%;
+            width: 40%; height: 40%;
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            filter: blur(1px);
+        }
+
+        /* --- 各目のメタリック色設定 --- */
+        /* 1: 赤メタリック */
+        .die[data-value="1"] .dot { 
+            background: radial-gradient(circle at 35% 35%, #ff5252, #b71c1c); 
+            width: 95%; height: 95%; 
+        } 
+        /* 2: 水色メタリック */
+        .die[data-value="2"] .dot { background: radial-gradient(circle at 35% 35%, #81d4fa, #0288d1); }
+        /* 3: 緑メタリック */
+        .die[data-value="3"] .dot { background: radial-gradient(circle at 35% 35%, #a5d6a7, #2e7d32); }
+        /* 4: 紫メタリック */
+        .die[data-value="4"] .dot { background: radial-gradient(circle at 35% 35%, #b39ddb, #512da8); }
+        /* 5: 黄メタリック */
+        .die[data-value="5"] .dot { background: radial-gradient(circle at 35% 35%, #fff176, #fbc02d); }
+        /* 6: 青×黒メタリック（グラデーション） */
+        .die[data-value="6"] .dot { 
+            background: linear-gradient(135deg, #0288d1, #212121);
+            border: 0.5px solid rgba(255,255,255,0.1);
+        }
 
         .die.highlight {
-            background: #fff;
             border-color: #fbc02d;
             transform: scale(1.05);
-            box-shadow: 0 0 15px rgba(251, 192, 45, 0.8);
+            box-shadow: 0 0 20px rgba(251, 192, 45, 0.6);
         }
 
         .rolling { animation: rotate-dice 0.3s linear infinite; }
@@ -72,20 +101,16 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* ポップアップ関連 */
+        /* ポップアップ・ボタン類はそのまま */
         #popup-mask { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; z-index: 1500; opacity: 0; transition: opacity 0.3s; }
         #custom-popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.8); background: white; padding: 30px; border-radius: 24px; box-shadow: 0 15px 40px rgba(0,0,0,0.3); z-index: 2000; display: none; opacity: 0; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); min-width: 260px; }
         #custom-popup.show { display: block; opacity: 1; transform: translate(-50%, -50%) scale(1); }
         .popup-close-btn { background: #0288d1; color: white; border: none; padding: 12px 40px; border-radius: 50px; font-weight: bold; cursor: pointer; margin-top: 10px; box-shadow: 0 4px #01579b; }
-
         #roll-btn { width: 80%; max-width: 300px; padding: 18px; font-size: 1.2rem; cursor: pointer; border: none; border-radius: 50px; background: #0288d1; color: white; box-shadow: 0 5px #01579b; font-weight: bold; touch-action: manipulation; }
         #roll-btn:active { transform: translateY(2px); box-shadow: 0 2px #01579b; }
-        #roll-btn:disabled { background: #b0bec5; box-shadow: none; }
-
         .record-board { margin: 20px auto; width: 90%; max-width: 400px; background: white; padding: 15px; border-radius: 20px; border: 2px solid #b3e5fc; box-sizing: border-box; }
         .record-item { display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px dashed #e1f5fe; }
         .count-badge { background: #4fc3f7; color: white; padding: 2px 12px; border-radius: 20px; }
-
         #overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(212, 175, 55, 0.98); color: white; flex-direction: column; align-items: center; justify-content: center; z-index: 3000; padding: 20px; box-sizing: border-box; }
         .close-btn { padding: 12px 45px; background: white; color: #b8860b; border: none; border-radius: 50px; cursor: pointer; font-weight: bold; }
     </style>
@@ -105,7 +130,7 @@
         <button class="close-btn" onclick="closeOverlay()">閉じる</button>
     </div>
 
-    <h1>フブさんとのサイコロゾロ目耐久</h1>
+    <h1>サイコロゾロ目耐久</h1>
     <div style="font-size: 1.2rem; font-weight: bold; color: #01579b; margin-bottom: 10px;">合計: <span id="total-count">0</span>回</div>
 
     <div class="dice-container" id="dice-display"></div>
@@ -124,7 +149,7 @@
     <button id="reset-btn" style="background: transparent; color: #90a4ae; border: none; margin: 20px 0; cursor: pointer; text-decoration: underline;" onclick="confirmReset()">データをリセット</button>
 
     <script>
-        const STORAGE_PREFIX = 'fubu_dice_color_v1_';
+        const STORAGE_PREFIX = 'fubu_dice_metallic_v1_';
         let totalRolls = parseInt(localStorage.getItem(STORAGE_PREFIX + 'rolls')) || 0;
         let zoromeCounts = JSON.parse(localStorage.getItem(STORAGE_PREFIX + 'counts')) || {5:0, 6:0, 7:0, 8:0, 9:0};
 
